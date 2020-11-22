@@ -1,0 +1,43 @@
+name: test
+on:
+  push:
+    tags:
+      - v*
+    branches: [ master ]
+  pull_request:
+jobs:
+  build:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.31
+          args: -E gosec
+  test:
+     name: test
+     runs-on: ubuntu-latest
+     steps:
+      - name: set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+      - name: set up Go module cache
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: setup env
+        run: |
+          echo "::set-env name=GOPATH::$(go env GOPATH)"
+          echo "::add-path::$(go env GOPATH)/bin"
+        shell: bash
+      - name: check out code
+        uses: actions/checkout@master
+      - name: run tests
+        run: go test -race -cover ./...
